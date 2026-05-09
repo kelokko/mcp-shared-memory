@@ -258,6 +258,7 @@ async function handleToolCall(
             similarity: m.similarity,
             tags: m.tags,
             source: m.source,
+            metadata: m.metadata,
             created_at: m.created_at,
           })),
         };
