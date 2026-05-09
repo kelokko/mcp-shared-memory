@@ -1,4 +1,4 @@
-# 🧠 MCP Shared Memory
+# Shared Memory MCP
 
 > A shared memory lake for AI agents — store and retrieve memories across Claude, Cursor, ElevenLabs, and more.
 
@@ -225,4 +225,4 @@ MIT © Mila R
 
 ---
 
-Built with 💜 by [Mila R](https://github.com/kelokko) and her AI agent Atlas
+Built by [kelokko](https://github.com/kelokko) and her AI agent Atlas
