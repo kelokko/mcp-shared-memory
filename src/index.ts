@@ -61,7 +61,7 @@ const TOOLS = [
       properties: {
         query: { type: "string", description: "Natural language search query" },
         limit: { type: "number", description: "Maximum results (default: 10)" },
-        threshold: { type: "number", description: "Similarity threshold 0-1 (default: 0.7)" },
+        threshold: { type: "number", description: "Similarity threshold 0-1 (default: 0.4)" },
         tags: { type: "array", items: { type: "string" }, description: "Filter by tags" },
       },
       required: ["query"],
@@ -246,7 +246,7 @@ async function handleToolCall(
         const embedding = await createEmbedding(query, env.OPENAI_API_KEY, embeddingModel);
         const memories = await searchMemories(supabase, embedding, {
           limit: (args.limit as number) || 10,
-          threshold: (args.threshold as number) || 0.7,
+          threshold: (args.threshold as number) || 0.4,
           tags: args.tags as string[] | undefined,
         });
         result = {
