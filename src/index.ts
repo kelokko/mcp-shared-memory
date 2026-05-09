@@ -324,6 +324,7 @@ async function handleToolCall(
             tags: m.tags,
             source: m.source,
             topic: m.topic,
+            metadata: m.metadata,
             created_at: m.created_at,
           })),
         };
@@ -354,6 +355,7 @@ async function handleToolCall(
             tags: m.tags,
             source: m.source,
             topic: m.topic,
+            metadata: m.metadata,
             created_at: m.created_at,
           })),
         };
