@@ -13,6 +13,7 @@ export interface Memory {
   metadata?: Record<string, unknown>;
   tags?: string[];
   source?: string;
+  original_date?: string;
   created_at: string;
   updated_at: string;
 }
@@ -93,7 +94,7 @@ export async function getMemory(
 ): Promise<Memory | null> {
   const { data, error } = await client
     .from("memories")
-    .select("id, content, metadata, tags, source, created_at, updated_at")
+    .select("id, content, metadata, tags, source, original_date, created_at, updated_at")
     .eq("id", id)
     .single();
 
@@ -120,8 +121,8 @@ export async function listMemories(
 
   let query = client
     .from("memories")
-    .select("id, content, metadata, tags, source, created_at, updated_at")
-    .order("created_at", { ascending: false })
+    .select("id, content, metadata, tags, source, original_date, created_at, updated_at")
+    .order("original_date", { ascending: false })
     .range(offset, offset + limit - 1);
 
   if (source) {

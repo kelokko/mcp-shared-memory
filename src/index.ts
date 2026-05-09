@@ -258,7 +258,7 @@ async function handleToolCall(
             similarity: m.similarity,
             tags: m.tags,
             source: m.source,
-            metadata: m.metadata,
+            original_date: m.original_date,
             created_at: m.created_at,
           })),
         };
@@ -290,6 +290,7 @@ async function handleToolCall(
             content: m.content,
             tags: m.tags,
             source: m.source,
+            original_date: m.original_date,
             created_at: m.created_at,
           })),
         };
@@ -325,7 +326,7 @@ async function handleToolCall(
             tags: m.tags,
             source: m.source,
             topic: m.topic,
-            metadata: m.metadata,
+            original_date: m.original_date,
             created_at: m.created_at,
           })),
         };
@@ -339,8 +340,8 @@ async function handleToolCall(
         };
         let curatedQuery = supabase
           .from("memories_curated")
-          .select("id, content, metadata, tags, source, topic, created_at")
-          .order("created_at", { ascending: false })
+          .select("id, content, tags, source, topic, original_date, created_at")
+          .order("original_date", { ascending: false })
           .range(listOpts.offset, listOpts.offset + listOpts.limit - 1);
         if (args.topic) {
           curatedQuery = curatedQuery.eq("topic", args.topic as string);
@@ -356,7 +357,7 @@ async function handleToolCall(
             tags: m.tags,
             source: m.source,
             topic: m.topic,
-            metadata: m.metadata,
+            original_date: m.original_date,
             created_at: m.created_at,
           })),
         };
