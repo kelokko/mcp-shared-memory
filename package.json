@@ -26,9 +26,7 @@
     "url": "https://github.com/kelokko/mcp-shared-memory"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.0",
-    "@supabase/supabase-js": "^2.49.0",
-    "zod": "^3.24.0"
+    "@supabase/supabase-js": "^2.49.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
