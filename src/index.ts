@@ -6,7 +6,8 @@
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createSupabaseClient, type SupabaseClient } from "./supabase.js";
+import { z } from "zod";
+import { createSupabaseClient } from "./supabase.js";
 import { createEmbedding } from "./embeddings.js";
 import {
   handleMemoryStore,
@@ -23,117 +24,35 @@ export interface Env {
   EMBEDDING_MODEL?: string;
 }
 
-// Tool definitions for MCP
-const TOOLS = [
-  {
-    name: "memory_store",
-    description: "Store a new memory with automatic vector embedding generation. Use this to save information that should be remembered across sessions.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        content: {
-          type: "string",
-          description: "The memory content to store",
-        },
-        tags: {
-          type: "array",
-          items: { type: "string" },
-          description: "Optional tags for categorizing the memory",
-        },
-        metadata: {
-          type: "object",
-          description: "Optional metadata object",
-        },
-        source: {
-          type: "string",
-          description: "Identifier for the agent storing this memory (e.g., 'cursor', 'claude', 'elevenlabs')",
-        },
-      },
-      required: ["content"],
-    },
-  },
-  {
-    name: "memory_search",
-    description: "Semantically search memories using natural language. Returns memories ranked by relevance.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        query: {
-          type: "string",
-          description: "Natural language search query",
-        },
-        limit: {
-          type: "number",
-          description: "Maximum number of results (default: 10)",
-        },
-        threshold: {
-          type: "number",
-          description: "Minimum similarity threshold 0-1 (default: 0.7)",
-        },
-        tags: {
-          type: "array",
-          items: { type: "string" },
-          description: "Filter results by tags",
-        },
-      },
-      required: ["query"],
-    },
-  },
-  {
-    name: "memory_get",
-    description: "Retrieve a specific memory by its ID",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        id: {
-          type: "string",
-          description: "The UUID of the memory to retrieve",
-        },
-      },
-      required: ["id"],
-    },
-  },
-  {
-    name: "memory_list",
-    description: "List memories with optional filtering. Use for browsing stored memories.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        limit: {
-          type: "number",
-          description: "Maximum number of results (default: 50)",
-        },
-        offset: {
-          type: "number",
-          description: "Offset for pagination",
-        },
-        tags: {
-          type: "array",
-          items: { type: "string" },
-          description: "Filter by tags",
-        },
-        source: {
-          type: "string",
-          description: "Filter by source agent",
-        },
-      },
-    },
-  },
-  {
-    name: "memory_delete",
-    description: "Delete a memory by ID",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        id: {
-          type: "string",
-          description: "The UUID of the memory to delete",
-        },
-      },
-      required: ["id"],
-    },
-  },
-];
+// Zod schemas for tool inputs
+const MemoryStoreSchema = z.object({
+  content: z.string().describe("The memory content to store"),
+  tags: z.array(z.string()).optional().describe("Optional tags for categorizing the memory"),
+  metadata: z.record(z.unknown()).optional().describe("Optional metadata object"),
+  source: z.string().optional().describe("Identifier for the agent storing this memory"),
+});
+
+const MemorySearchSchema = z.object({
+  query: z.string().describe("Natural language search query"),
+  limit: z.number().optional().describe("Maximum number of results (default: 10)"),
+  threshold: z.number().optional().describe("Minimum similarity threshold 0-1 (default: 0.7)"),
+  tags: z.array(z.string()).optional().describe("Filter results by tags"),
+});
+
+const MemoryGetSchema = z.object({
+  id: z.string().describe("The UUID of the memory to retrieve"),
+});
+
+const MemoryListSchema = z.object({
+  limit: z.number().optional().describe("Maximum number of results (default: 50)"),
+  offset: z.number().optional().describe("Offset for pagination"),
+  tags: z.array(z.string()).optional().describe("Filter by tags"),
+  source: z.string().optional().describe("Filter by source agent"),
+});
+
+const MemoryDeleteSchema = z.object({
+  id: z.string().describe("The UUID of the memory to delete"),
+});
 
 /**
  * Create and configure the MCP server
@@ -147,53 +66,78 @@ function createMcpServer(env: Env) {
   const supabase = createSupabaseClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
   const embeddingModel = env.EMBEDDING_MODEL || "text-embedding-3-small";
 
-  // Register tools
+  // Register tools with Zod schemas
   server.tool(
     "memory_store",
-    TOOLS[0].inputSchema,
+    "Store a new memory with automatic vector embedding generation. Use this to save information that should be remembered across sessions.",
+    MemoryStoreSchema.shape,
     async (args) => {
+      const parsed = MemoryStoreSchema.parse(args);
       const embedding = await createEmbedding(
-        args.content as string,
+        parsed.content,
         env.OPENAI_API_KEY,
         embeddingModel
       );
-      return handleMemoryStore(supabase, { ...args, embedding });
+      return handleMemoryStore(supabase, { ...parsed, embedding });
     }
   );
 
   server.tool(
     "memory_search",
-    TOOLS[1].inputSchema,
+    "Semantically search memories using natural language. Returns memories ranked by relevance.",
+    MemorySearchSchema.shape,
     async (args) => {
+      const parsed = MemorySearchSchema.parse(args);
       const embedding = await createEmbedding(
-        args.query as string,
+        parsed.query,
         env.OPENAI_API_KEY,
         embeddingModel
       );
-      return handleMemorySearch(supabase, { ...args, embedding });
+      return handleMemorySearch(supabase, { ...parsed, embedding });
     }
   );
 
   server.tool(
     "memory_get",
-    TOOLS[2].inputSchema,
-    async (args) => handleMemoryGet(supabase, args)
+    "Retrieve a specific memory by its ID",
+    MemoryGetSchema.shape,
+    async (args) => {
+      const parsed = MemoryGetSchema.parse(args);
+      return handleMemoryGet(supabase, parsed);
+    }
   );
 
   server.tool(
     "memory_list",
-    TOOLS[3].inputSchema,
-    async (args) => handleMemoryList(supabase, args)
+    "List memories with optional filtering. Use for browsing stored memories.",
+    MemoryListSchema.shape,
+    async (args) => {
+      const parsed = MemoryListSchema.parse(args);
+      return handleMemoryList(supabase, parsed);
+    }
   );
 
   server.tool(
     "memory_delete",
-    TOOLS[4].inputSchema,
-    async (args) => handleMemoryDelete(supabase, args)
+    "Delete a memory by ID",
+    MemoryDeleteSchema.shape,
+    async (args) => {
+      const parsed = MemoryDeleteSchema.parse(args);
+      return handleMemoryDelete(supabase, parsed);
+    }
   );
 
   return server;
 }
+
+// Tool definitions for GET endpoint info
+const TOOLS = [
+  { name: "memory_store", description: "Store a new memory with automatic vector embedding generation" },
+  { name: "memory_search", description: "Semantically search memories using natural language" },
+  { name: "memory_get", description: "Retrieve a specific memory by its ID" },
+  { name: "memory_list", description: "List memories with optional filtering" },
+  { name: "memory_delete", description: "Delete a memory by ID" },
+];
 
 /**
  * Cloudflare Workers entry point
@@ -245,7 +189,7 @@ export default {
             name: "mcp-shared-memory",
             version: "0.1.0",
             description: "Shared memory lake for AI agents",
-            tools: TOOLS.map((t) => ({ name: t.name, description: t.description })),
+            tools: TOOLS,
           }),
           { headers: { "Content-Type": "application/json" } }
         );
