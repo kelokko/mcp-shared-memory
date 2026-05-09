@@ -2,9 +2,12 @@ name = "mcp-shared-memory"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
-# Cloudflare Workers configuration
-# Run `wrangler dev` for local development
-# Run `wrangler deploy` to publish
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+invocation_logs = true
 
 [vars]
 # Non-secret config goes here
