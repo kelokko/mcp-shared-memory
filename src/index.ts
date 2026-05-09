@@ -102,6 +102,48 @@ const TOOLS = [
       required: ["id"],
     },
   },
+  {
+    name: "curated_search",
+    description: "Search curated/consolidated memories. These are deduplicated, topic-grouped summaries optimized for context injection.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Natural language search query" },
+        limit: { type: "number", description: "Maximum results (default: 10)" },
+        threshold: { type: "number", description: "Similarity threshold 0-1 (default: 0.5)" },
+        topic: { type: "string", description: "Filter by topic label" },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "curated_list",
+    description: "List curated memories, sorted by most recent first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Maximum results (default: 20)" },
+        offset: { type: "number", description: "Pagination offset" },
+        topic: { type: "string", description: "Filter by topic label" },
+      },
+    },
+  },
+  {
+    name: "curated_store",
+    description: "Store a consolidated memory in the curated table. Used by the consolidation pipeline.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        content: { type: "string", description: "The consolidated memory content" },
+        tags: { type: "array", items: { type: "string" }, description: "Tags for categorizing" },
+        source: { type: "string", description: "Primary source of the consolidated content" },
+        source_ids: { type: "array", items: { type: "string" }, description: "UUIDs of raw memories this was consolidated from" },
+        topic: { type: "string", description: "Topic label for this cluster" },
+        metadata: { type: "object", description: "Optional metadata" },
+      },
+      required: ["content"],
+    },
+  },
 ];
 
 // Server info
@@ -259,6 +301,86 @@ async function handleToolCall(
         break;
       }
 
+      case "curated_search": {
+        const searchQuery = args.query as string;
+        const searchEmbed = await createEmbedding(searchQuery, env.OPENAI_API_KEY, embeddingModel);
+        const { data: searchData, error: searchError } = await supabase.rpc("match_memories_curated", {
+          query_embedding: searchEmbed,
+          match_threshold: (args.threshold as number) || 0.5,
+          match_count: (args.limit as number) || 10,
+        });
+        if (searchError) throw new Error(`Curated search failed: ${searchError.message}`);
+        let searchResults = searchData || [];
+        if (args.topic) {
+          searchResults = searchResults.filter((m: any) => m.topic === args.topic);
+        }
+        result = {
+          success: true,
+          count: searchResults.length,
+          memories: searchResults.map((m: any) => ({
+            id: m.id,
+            content: m.content,
+            similarity: m.similarity,
+            tags: m.tags,
+            source: m.source,
+            topic: m.topic,
+            created_at: m.created_at,
+          })),
+        };
+        break;
+      }
+
+      case "curated_list": {
+        const listOpts: any = {
+          offset: (args.offset as number) || 0,
+          limit: (args.limit as number) || 20,
+        };
+        let curatedQuery = supabase
+          .from("memories_curated")
+          .select("id, content, metadata, tags, source, topic, created_at")
+          .order("created_at", { ascending: false })
+          .range(listOpts.offset, listOpts.offset + listOpts.limit - 1);
+        if (args.topic) {
+          curatedQuery = curatedQuery.eq("topic", args.topic as string);
+        }
+        const { data: curatedData, error: curatedError } = await curatedQuery;
+        if (curatedError) throw new Error(`Curated list failed: ${curatedError.message}`);
+        result = {
+          success: true,
+          count: (curatedData || []).length,
+          memories: (curatedData || []).map((m: any) => ({
+            id: m.id,
+            content: m.content,
+            tags: m.tags,
+            source: m.source,
+            topic: m.topic,
+            created_at: m.created_at,
+          })),
+        };
+        break;
+      }
+
+      case "curated_store": {
+        const curatedContent = args.content as string;
+        const curatedEmbed = await createEmbedding(curatedContent, env.OPENAI_API_KEY, embeddingModel);
+        const { data: storeData, error: storeError } = await supabase
+          .from("memories_curated")
+          .insert({
+            content: curatedContent,
+            embedding: curatedEmbed,
+            tags: (args.tags as string[]) || [],
+            metadata: (args.metadata as Record<string, unknown>) || {},
+            source: args.source as string | undefined,
+            source_ids: (args.source_ids as string[]) || [],
+            topic: args.topic as string | undefined,
+          })
+          .select()
+          .single();
+        if (storeError) throw new Error(`Curated store failed: ${storeError.message}`);
+        result = { success: true, id: storeData.id, message: "Curated memory stored" };
+        break;
+      }
+
       default:
         return {
           jsonrpc: "2.0",
@@ -315,7 +437,7 @@ export default {
     // Auth check for all other endpoints
     const authHeader = request.headers.get("Authorization");
     const token = authHeader?.replace("Bearer ", "");
-    if (!token || token !== env.AUTH_TOKEN) {
+    if (!env.AUTH_TOKEN || !token || token !== env.AUTH_TOKEN) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
