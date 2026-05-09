@@ -15,6 +15,7 @@ export interface Env {
   SUPABASE_ANON_KEY: string;
   OPENAI_API_KEY: string;
   EMBEDDING_MODEL?: string;
+  AUTH_TOKEN: string;
 }
 
 // MCP Protocol Types
@@ -296,7 +297,7 @@ export default {
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     };
 
     // Handle CORS preflight
@@ -304,9 +305,19 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
-    // Health check
+    // Health check (no auth required)
     if (url.pathname === "/health") {
       return new Response(JSON.stringify({ status: "ok" }), {
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Auth check for all other endpoints
+    const authHeader = request.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "");
+    if (!token || token !== env.AUTH_TOKEN) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
