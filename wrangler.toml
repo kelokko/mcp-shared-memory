@@ -1,0 +1,17 @@
+name = "mcp-shared-memory"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Cloudflare Workers configuration
+# Run `wrangler dev` for local development
+# Run `wrangler deploy` to publish
+
+[vars]
+# Non-secret config goes here
+# ENVIRONMENT = "production"
+
+# Secrets are set via `wrangler secret put <NAME>`
+# Required secrets:
+# - SUPABASE_URL
+# - SUPABASE_ANON_KEY  
+# - OPENAI_API_KEY (for embeddings)

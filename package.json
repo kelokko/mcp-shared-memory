@@ -1,0 +1,37 @@
+{
+  "name": "mcp-shared-memory",
+  "version": "0.1.0",
+  "description": "A shared memory lake MCP server for AI agents — store and retrieve memories across Claude, Cursor, ElevenLabs, and more",
+  "author": "Mila R <kelokko>",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "memory",
+    "vector-search",
+    "supabase",
+    "cloudflare-workers"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kelokko/mcp-shared-memory"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@supabase/supabase-js": "^2.49.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.0.0"
+  }
+}
