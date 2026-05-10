@@ -9,10 +9,10 @@
 An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that provides a **shared memory layer** for AI agents. Any MCP-compatible client can store and retrieve memories from a central Supabase database with vector search.
 
 **Use cases:**
-- 🤖 Share context between different AI tools (Cursor, Claude Desktop, ElevenLabs agents)
-- 🧠 Give your AI agents persistent long-term memory
-- 🔍 Semantic search over stored memories using embeddings
-- 🏷️ Organize memories with tags and metadata
+- Share context between AI tools (Cursor, Claude Desktop, ElevenLabs agents)
+- Persistent long-term memory for AI agents
+- Semantic search over stored memories using embeddings
+- Organize memories with tags and metadata
 
 ## Architecture
 
@@ -221,8 +221,4 @@ PRs welcome! This is an open source project.
 
 ## License
 
-MIT © Mila R
-
----
-
-Built by [kelokko](https://github.com/kelokko) and her AI agent Atlas
+MIT © kelokko
